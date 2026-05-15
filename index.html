@@ -1675,6 +1675,20 @@ function clearAuth() {
   try {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
+    /* 분석 결과/페이지 상태도 함께 삭제 — 계정 전환 시 이전 사용자 데이터 노출 방지 */
+    localStorage.removeItem('_savedResult');
+    localStorage.removeItem('_savedLogId');
+    localStorage.removeItem('_lastPage');
+    localStorage.removeItem('analysisResult');
+    sessionStorage.removeItem('analysisResult');
+  } catch(e) {}
+  /* 메모리 상태도 초기화 */
+  lastResult = null;
+  currentLogId = null;
+  allItems = [];
+  /* 분석 결과가 떠 있었다면 홈으로 이동 */
+  try {
+    if (typeof showPage === 'function') showPage('pageInput');
   } catch(e) {}
   updateHeaderUser();
 }
@@ -2303,7 +2317,8 @@ window.addEventListener('popstate', function(){
   if(!hash){
     const savedResult = localStorage.getItem('_savedResult');
     const savedLogId  = localStorage.getItem('_savedLogId');
-    if (savedResult) {
+    /* 비로그인이면 저장 결과 무시 — 다른 사용자 캐시일 수 있음 */
+    if (savedResult && currentUser) {
       try {
         const _r = JSON.parse(savedResult);
         if (savedLogId) currentLogId = savedLogId;
@@ -2314,6 +2329,10 @@ window.addEventListener('popstate', function(){
         localStorage.removeItem('_savedResult');
         localStorage.removeItem('_savedLogId');
       }
+    } else if (savedResult && !currentUser) {
+      /* 비로그인 시 잔존 캐시 청소 */
+      localStorage.removeItem('_savedResult');
+      localStorage.removeItem('_savedLogId');
     }
     showPage('pageInput');
   } else if(hash === 'mypage'){
@@ -3717,22 +3736,29 @@ window.addEventListener('load', async () => {
   /* 새로고침 후 페이지 복원 */
   const _lastPage = localStorage.getItem('_lastPage');
   if(_lastPage === 'pageResult'){
-    /* 저장된 분석 결과로 결과 페이지 복원 */
-    try {
-      const _saved = localStorage.getItem('_savedResult');
-      if(_saved){
-        const _r = JSON.parse(_saved);
-        const _savedLogId = localStorage.getItem('_savedLogId');
-        if (_savedLogId) currentLogId = _savedLogId;
-        render(_r);
-        /* 잠금 해제 여부 — render() 내부의 서버 검증 흐름에 위임
-           (currentLogId가 없는 새로고침 복원 시엔 isAnalysisUnlocked가 false 반환하므로
-            서버 isUnlocked API로만 판단) */
-        showPage('pageResult');
-      } else {
-        localStorage.removeItem('_lastPage');
-      }
-    } catch(e){ localStorage.removeItem('_lastPage'); }
+    /* 비로그인 상태면 저장된 결과 신뢰하지 않음 — 다른 사용자의 캐시일 수 있음 */
+    if(!currentUser){
+      localStorage.removeItem('_savedResult');
+      localStorage.removeItem('_savedLogId');
+      localStorage.removeItem('_lastPage');
+    } else {
+      /* 저장된 분석 결과로 결과 페이지 복원 */
+      try {
+        const _saved = localStorage.getItem('_savedResult');
+        if(_saved){
+          const _r = JSON.parse(_saved);
+          const _savedLogId = localStorage.getItem('_savedLogId');
+          if (_savedLogId) currentLogId = _savedLogId;
+          render(_r);
+          /* 잠금 해제 여부 — render() 내부의 서버 검증 흐름에 위임
+             (currentLogId가 없는 새로고침 복원 시엔 isAnalysisUnlocked가 false 반환하므로
+              서버 isUnlocked API로만 판단) */
+          showPage('pageResult');
+        } else {
+          localStorage.removeItem('_lastPage');
+        }
+      } catch(e){ localStorage.removeItem('_lastPage'); }
+    }
   } else if(_lastPage === 'pageMypage' && currentUser){
     /* 로그인 상태면 마이페이지 복원 */
     showPage('pageMypage');
