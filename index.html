@@ -497,6 +497,26 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--surface
 .tip-question{margin-top:10px;padding:9px 12px;background:var(--paper);border-radius:var(--radius-sm);border:0.5px solid var(--rule);font-size:12px;color:var(--ink3);line-height:1.6;}
 .tip-question-label{font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
 
+/* ── 금액 의심 포인트 (suspects) ── */
+.tip-suspects{background:#FFF8E1;border:1px solid #F5C842;border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:10px;}
+.tip-suspects-label{font-size:11px;font-weight:800;color:#A67C00;letter-spacing:0.3px;margin-bottom:7px;display:flex;align-items:center;gap:5px;}
+.tip-suspect-item{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:0.5px solid rgba(245,200,66,0.35);}
+.tip-suspect-item:last-child{border-bottom:none;padding-bottom:0;}
+.tip-suspect-dot{width:5px;height:5px;border-radius:50%;background:#F5C842;flex-shrink:0;margin-top:6px;}
+.tip-suspect-text{font-size:13px;color:#5C4500;line-height:1.6;word-break:keep-all;}
+
+/* ── 협상 스크립트 (script) ── */
+.tip-script{background:#EEF3FF;border:1px solid #C9D8FF;border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:10px;}
+.tip-script-label{font-size:11px;font-weight:800;color:#1F4FD8;letter-spacing:0.3px;margin-bottom:7px;display:flex;align-items:center;gap:5px;}
+.tip-script-bubble{background:#fff;border:1px solid #C9D8FF;border-radius:10px;border-bottom-left-radius:2px;padding:9px 12px;font-size:13px;color:var(--ink);line-height:1.7;word-break:keep-all;white-space:pre-line;}
+
+/* ── 체크리스트 (checks) ── */
+.tip-checklist{margin-top:10px;padding:9px 12px;background:var(--paper);border-radius:var(--radius-sm);border:0.5px solid var(--rule);}
+.tip-checklist-label{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:0.3px;margin-bottom:7px;display:flex;align-items:center;gap:5px;}
+.tip-check-item{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--rule);font-size:13px;color:var(--ink3);line-height:1.6;word-break:keep-all;}
+.tip-check-item:last-child{border-bottom:none;padding-bottom:0;}
+.tip-check-box{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--rule);flex-shrink:0;margin-top:2px;}
+
 /* ── 약관 페이지 ── */
 .legal-wrap{max-width:680px;margin:0 auto;padding:2rem 1.5rem;}
 .legal-body h3{font-size:15px;font-weight:700;color:var(--ink);margin:1.5rem 0 0.6rem;padding-top:1.25rem;border-top:0.5px solid var(--rule);}
@@ -3123,18 +3143,51 @@ ${ALL_ITEMS_REF}
 ${userCtx}
 ${ctxRules}
 
-For tips array, write one tip object per 비쌈 item (no limit), then fill remaining slots with 적정 items.
-Each tip object MUST have:
+For tips array, write one tip object per 비쌈 item (no limit), then fill remaining slots with 적정/저렴 items up to total 8 tips.
+Each tip object MUST have all of these fields:
 - category: 공정 카테고리명
 - itemName: 견적서 항목명 (원본 그대로)
 - icon: 해당 공종 이모지 (🔨철거 🪟창호 🏗️설비 🪚목공 🪵바닥 🖼️도배 🎨도장 🟫타일 🚿욕실 🍳주방 🚪가구 💡전기 💰기업이윤 🔩기타)
-- verdict: 반드시 아래 규칙으로 계산할 것 — ratioVsAvg = (currentAmount / ((marketMin+marketMax)/2)) × 100 기준으로 저렴(ratio < 85) / 적정(85 ≤ ratio ≤ 130) / 비쌈(ratio > 130). items 배열의 verdict와 반드시 일치해야 함.
+- verdict: ratioVsAvg 기준 저렴(ratio<85) / 적정(85~130) / 비쌈(ratio>130). items 배열과 반드시 일치.
 - currentAmount: 현재 견적 금액 (원)
 - marketMin: 시중가 최저 (원)
 - marketMax: 시중가 최고 (원)
-- diffAmount: currentAmount - (marketMin+marketMax)/2 양수면 초과 음수면 절감
-- ways: 절약 방법 4~7가지 배열. 위 [맥락 활용 규칙]을 반드시 따를 것. 각 항목은 사용자 면적/지역/건물유형/연식을 반영한 구체적 금액·브랜드·수량 포함 (각 100~150자, 일반론 금지)
-- checks: 이 항목에서 반드시 확인해야 할 체크리스트 배열, 최소 3개~최대 5개. 위 [맥락 활용 규칙]을 반드시 따를 것 (각 40~80자, 사용자 건물 상황에 특화된 확인 사항)
+- diffAmount: currentAmount - (marketMin+marketMax)/2
+
+━━━ suspects 필드 작성 규칙 ━━━
+suspects: 이 항목의 금액이 올라갔을 수 있는 현실적인 의심 포인트 배열 (3~5개)
+목적: "혹시 이런 이유로 비싸게 견적된 건 아닐까요?" — 사용자가 업체에 확인해야 할 의심 원인
+규칙:
+- 자재 다운그레이드 제안 절대 금지 ("원목 대신 MDF" 같은 말 X)
+- 이 항목이 저렴/적정이어도 suspects는 반드시 작성 (금액 구성 투명성 확인 차원)
+- 각 항목은 "~됐을 수 있음", "~가 포함됐을 수 있음", "~가 이중으로 잡혔을 수 있음" 형식
+- 면적/지역/건물연식을 반드시 반영. 예: "구축(30년 이상) 건물은 바닥 수평 보정 비용이 별도 청구되는 경우 많음"
+- 금액 단위 포함. 예: "이 항목 단가가 평당 X만원으로 계산됐다면 서울 시중가보다 Y만원 높은 수준"
+- 각 항목 60~100자
+
+━━━ script 필드 작성 규칙 ━━━
+script: 사용자가 업체에 실제로 말할 수 있는 협상/확인 문장 (1개, 자연스러운 대화체)
+목적: 복붙해서 바로 쓸 수 있는 실전 문구
+규칙:
+- "안녕하세요, ~"로 시작하지 말 것. 핵심만.
+- 구체적 금액/단가/비율 반드시 포함
+- 위협적이지 않고 정중하되 명확하게
+- 두 가지 이상 요청 포함 (가격 조정 OR 스펙 명시 OR 이유 설명 요청 등)
+- 예시: "${region} 기준 이 항목 시중가가 X~Y만원인데, 저희 견적은 Z만원이네요. 단가 기준이 어떻게 되는지 설명해주시고, 조정이 어렵다면 어떤 자재/사양으로 시공되는지 견적서에 명시해주실 수 있을까요?"
+- 저렴한 항목이면: "이 항목은 합리적으로 책정된 것 같아요. 혹시 자재 스펙과 하자보수 기간을 계약서에 명시해주실 수 있나요?"
+- 100~180자
+
+━━━ checks 필드 작성 규칙 ━━━
+checks: 계약 전 또는 시공 중 반드시 확인해야 할 체크리스트 (3~5개)
+목적: 나중에 분쟁이 생겼을 때 사용자를 보호하는 항목들
+규칙:
+- 자재 스펙 명시 여부, 하자보수 조건, 추가 청구 가능성, 시공 방법 등
+- 건물 연식/유형에 따른 특수 주의사항 포함
+- "~인지 확인", "~을 서면으로 받았는지", "~가 견적서에 명시됐는지" 형식
+- 각 항목 40~70자
+
+JSON 예시 (이 형식 엄수):
+{"category":"바닥재","itemName":"강마루 시공","icon":"🪵","verdict":"비쌈","currentAmount":5400000,"marketMin":3200000,"marketMax":4800000,"diffAmount":1600000,"suspects":["시공면적이 실제보다 10~15% 넓게 잡혔을 수 있음 (여유분 명목)","강마루가 아닌 원목마루 단가로 계산됐을 수 있음 — 평당 4만원 vs 12만원 차이"],"script":"서울 기준 강마루 시공이 평당 18~22만원인데 이 견적은 평당 27만원 수준이에요. 어떤 자재 기준으로 단가가 책정됐는지 알려주시고, 시공면적 산출 근거도 함께 확인할 수 있을까요?","checks":["견적서에 자재 브랜드명과 두께(mm)가 명시됐는지 확인","시공면적 산출 근거(도면 또는 실측 기준)를 서면으로 받았는지","하자보수 기간 2년 이상이 계약서에 명기됐는지"]}
 
 region:${region} area:${Math.round(py)}평(${Math.round(m2)}㎡) 방:${roomCount}개 화장실:${bathCount}개${buildingType?` 건물:${buildingType}`:''}${buildingAge?`(${buildingAge})`:''}
 Market refs per 평 (${region}기준, 지역 물가 보정 적용):
@@ -3693,8 +3746,8 @@ function renderPaidDetail(){
           <div class="tip-header-left">
             <div class="tip-icon ${c}">${tip.icon||'💡'}</div>
             <div>
-              <div class="tip-cat">${esc(tip.category||''  )}</div>
-              <div class="tip-name">${esc(tip.itemName||''  )}</div>
+              <div class="tip-cat">${esc(tip.category||'')}</div>
+              <div class="tip-name">${esc(tip.itemName||'')}</div>
             </div>
           </div>
           <div class="tip-amounts">
@@ -3710,18 +3763,36 @@ function renderPaidDetail(){
           <div class="tip-ratio ${c}">${ratioLabel}</div>
         </div>`:''}
         <div class="tip-body">
-          ${tip.ways&&tip.ways.length?`
+          ${tip.suspects&&tip.suspects.length?`
+          <div class="tip-suspects">
+            <div class="tip-suspects-label">🔍 이 금액이 높을 수 있는 이유</div>
+            ${tip.suspects.map(s=>`
+              <div class="tip-suspect-item">
+                <div class="tip-suspect-dot"></div>
+                <div class="tip-suspect-text">${esc(s)}</div>
+              </div>`).join('')}
+          </div>`:''}
+          ${tip.script?`
+          <div class="tip-script">
+            <div class="tip-script-label">💬 업체에 이렇게 물어보세요</div>
+            <div class="tip-script-bubble">${esc(tip.script)}</div>
+          </div>`:''}
+          ${tip.checks&&tip.checks.length?`
+          <div class="tip-checklist">
+            <div class="tip-checklist-label">✅ 계약 전 체크리스트</div>
+            ${tip.checks.map(ch=>`
+              <div class="tip-check-item">
+                <div class="tip-check-box"></div>
+                <span>${esc(ch)}</span>
+              </div>`).join('')}
+          </div>`:''}
+          ${(!tip.suspects||!tip.suspects.length)&&(!tip.script)&&(!tip.checks||!tip.checks.length)&&tip.ways&&tip.ways.length?`
           <div class="tip-ways-label">절약 방법</div>
           ${tip.ways.map((w,wi)=>`
             <div class="tip-way">
               <div class="tip-way-num ${c}">${wi+1}</div>
               <div class="tip-way-text">${esc(w)}</div>
             </div>`).join('')}`:''}
-          ${(tip.checks&&tip.checks.length)?`
-          <div class="tip-question">
-            <div class="tip-question-label">✅ Check List</div>
-            ${tip.checks.map((ch,ci)=>`<div style="display:flex;align-items:flex-start;gap:6px;${ci>0?'margin-top:6px;padding-top:6px;border-top:0.5px solid var(--rule);':''}"><span style="flex-shrink:0;font-size:11px;font-weight:700;color:var(--muted);">${ci+1}.</span><span>${esc(ch)}</span></div>`).join('')}
-          </div>`:''}
         </div>
       </div>`;
     }).join('');
