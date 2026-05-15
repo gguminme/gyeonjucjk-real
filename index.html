@@ -3702,6 +3702,10 @@ window.addEventListener('load', async () => {
     return;
   }
 
+  /* 이메일 인증 복귀는 가장 먼저 처리 (다른 초기화보다 우선) */
+  const _emailConfirmed = await checkEmailConfirmReturn();
+  if(_emailConfirmed) return; /* 이메일 인증 후엔 다른 초기화 스킵 */
+
   await restoreAuth();
   await loadUserCredits();
   await fetchDailySaleStatus();
@@ -3750,6 +3754,43 @@ window.addEventListener('load', async () => {
     /* refund/terms/privacy는 load 이벤트 최상단에서 이미 처리됨 */
   }
 });
+
+/* ── 이메일 인증(회원가입 confirm) 복귀 처리 ── */
+async function checkEmailConfirmReturn(){
+  /* Supabase는 hash fragment로 토큰을 전달 (#access_token=...&type=signup) */
+  const hash = window.location.hash;
+  const hashParams = new URLSearchParams(hash.replace('#', ''));
+  const type = hashParams.get('type');
+  const accessToken = hashParams.get('access_token');
+
+  /* 이메일 인증 복귀가 아니면 무시 */
+  if(type !== 'signup' || !accessToken) return false;
+
+  /* URL 정리 (토큰 흔적 제거) */
+  window.history.replaceState({}, '', window.location.pathname);
+
+  /* 자동 로그인 방지 — Supabase가 자동 저장한 세션 강제 로그아웃 */
+  try {
+    await window._supabase.auth.signOut();
+  } catch(e) { console.warn('자동 로그아웃 실패:', e); }
+
+  /* 로컬 인증/페이지 상태 초기화 */
+  currentUser = null;
+  authToken = null;
+  try { localStorage.removeItem('_lastPage'); } catch(e){}
+  try { localStorage.removeItem('_savedResult'); } catch(e){}
+  try { localStorage.removeItem('_savedLogId'); } catch(e){}
+  updateHeaderUser();
+
+  /* 메인 페이지로 이동 후 로그인 모달 표시 */
+  showPage('pageInput');
+  setTimeout(() => {
+    alert('✅ 이메일 인증이 완료되었습니다.\n로그인하여 서비스를 이용해주세요.');
+    openAuthModal('login');
+  }, 300);
+
+  return true;
+}
 
 /* ── 비밀번호 재설정 링크 복귀 처리 ── */
 async function checkPasswordResetReturn(){
