@@ -920,6 +920,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--surface
         </select>
       </div>
     </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:8px 12px;margin-top:1rem;margin-bottom:0.5rem;line-height:1.5;">
+      <span style="font-size:13px;">💡</span>
+      <span>분석 시 회원가입/로그인이 필요해요. 입력하신 내용은 그대로 유지됩니다.</span>
+    </div>
     <button class="btn-analyze" id="analyzeBtn" disabled onclick="gateAnalyze()">
       <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M14 14l3 3"/></svg>
       AI 견적 분석 시작하기
@@ -965,6 +969,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--surface
           <option value="기타">기타 지역</option>
         </select>
       </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:8px 12px;margin-top:1.25rem;margin-bottom:-0.25rem;line-height:1.5;">
+      <span style="font-size:13px;">💡</span>
+      <span>분석 시 회원가입/로그인이 필요해요. 입력하신 내용은 그대로 유지됩니다.</span>
     </div>
     <button class="btn-analyze" id="analyzeBtnM" onclick="gateManualAnalyze()" style="margin-top:1.25rem;">
       <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M14 14l3 3"/></svg>
@@ -2215,16 +2223,37 @@ function gateManualAnalyze() {
 /* 로그인 전 입력 상태 저장 — 소셜 로그인 시 페이지 새로고침으로 날아가는 것 방지 */
 function _saveAnalysisStateBeforeLogin(pendingAction) {
   try {
+    /* 직접입력 모드의 모든 input 값 캡처 */
+    const manualInputs = {};
+    document.querySelectorAll('.manual-item-input').forEach(el => {
+      if (el.id && el.value) manualInputs[el.id] = el.value;
+    });
+    /* 직접입력 모드의 체크박스 상태 캡처 (목공 세부 항목 등) */
+    const manualChecks = {};
+    document.querySelectorAll('#manualCats input[type="checkbox"]').forEach(el => {
+      if (el.id && el.checked) manualChecks[el.id] = true;
+    });
+
     const state = {
       pendingAction,
       pdfText,
       imageBase64,
       imageMime,
+      /* 파일 업로드 모드 폼 값 */
       region: document.getElementById('region')?.value || '',
       areaNum: document.getElementById('areaNum')?.value || '',
       areaUnit: document.getElementById('areaUnit')?.value || '',
       roomCount: document.getElementById('roomCount')?.value || '',
       bathCount: document.getElementById('bathCount')?.value || '',
+      /* 직접입력 모드 폼 값 */
+      regionM:    document.getElementById('regionM')?.value || '',
+      areaNumM:   document.getElementById('areaNumM')?.value || '',
+      areaUnitM:  document.getElementById('areaUnitM')?.value || '',
+      roomCountM: document.getElementById('roomCountM')?.value || '',
+      bathCountM: document.getElementById('bathCountM')?.value || '',
+      /* 직접입력 모드 카테고리별 금액 + 체크박스 */
+      manualInputs,
+      manualChecks,
     };
     sessionStorage.setItem('_pendingAnalysis', JSON.stringify(state));
   } catch(e) {}
@@ -2242,14 +2271,38 @@ function _restoreAnalysisStateAfterLogin() {
     if (state.pdfText)     pdfText = state.pdfText;
     if (state.imageBase64) { imageBase64 = state.imageBase64; imageMime = state.imageMime || 'image/jpeg'; }
 
-    /* 폼 값 복원 */
+    /* 파일 업로드 모드 폼 값 복원 */
     if (state.region)    { const el = document.getElementById('region');    if(el) el.value = state.region; }
     if (state.areaNum)   { const el = document.getElementById('areaNum');   if(el) el.value = state.areaNum; }
     if (state.areaUnit)  { const el = document.getElementById('areaUnit');  if(el) el.value = state.areaUnit; }
     if (state.roomCount) { const el = document.getElementById('roomCount'); if(el) el.value = state.roomCount; }
     if (state.bathCount) { const el = document.getElementById('bathCount'); if(el) el.value = state.bathCount; }
 
-    /* 분석 버튼 활성화 */
+    /* 직접입력 모드 폼 값 복원 */
+    if (state.regionM)    { const el = document.getElementById('regionM');    if(el) el.value = state.regionM; }
+    if (state.areaNumM)   { const el = document.getElementById('areaNumM');   if(el) el.value = state.areaNumM; }
+    if (state.areaUnitM)  { const el = document.getElementById('areaUnitM');  if(el) el.value = state.areaUnitM; }
+    if (state.roomCountM) { const el = document.getElementById('roomCountM'); if(el) el.value = state.roomCountM; }
+    if (state.bathCountM) { const el = document.getElementById('bathCountM'); if(el) el.value = state.bathCountM; }
+
+    /* 직접입력 모드 카테고리별 금액 복원 + 총합 재계산 */
+    if (state.manualInputs && Object.keys(state.manualInputs).length > 0) {
+      Object.entries(state.manualInputs).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      });
+      /* 총합/뱃지 업데이트 */
+      try { if (typeof updateManualTotal === 'function') updateManualTotal(); } catch(e){}
+    }
+    /* 직접입력 모드 체크박스 복원 */
+    if (state.manualChecks) {
+      Object.keys(state.manualChecks).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.checked = true;
+      });
+    }
+
+    /* 분석 버튼 활성화 (파일 업로드 모드) */
     if (state.pdfText || state.imageBase64) {
       const btn = document.getElementById('analyzeBtn');
       if (btn) btn.disabled = false;
