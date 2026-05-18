@@ -2054,6 +2054,16 @@ async function doEmailAuth() {
     if (!resp.ok || !data.success) {
       showAuthError(data.error || '오류가 발생했어요');
       
+      /* ⭐ 이미 가입된 이메일 — 로그인 탭으로 자동 전환 */
+      if (data.alreadyExists) {
+        setTimeout(() => {
+          switchAuthTab('login', null);
+          /* 이메일 필드에 입력값 유지 */
+          const emailEl = document.getElementById('authEmail');
+          if (emailEl) emailEl.value = email;
+        }, 1500);
+      }
+
       /* ⭐ 새로 가입 필요한 경우 처리 */
       if (data.needsNewSignup) {
         setTimeout(() => {
