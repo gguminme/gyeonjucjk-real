@@ -68,9 +68,14 @@ export default async function handler(req, res) {
         }
       }
 
-      /* ── 이미 가입된 이메일 중복 체크 ── */
-      const { data: existingUser } = await supabase.auth.admin.getUserByEmail(email.toLowerCase().trim());
-      if (existingUser?.user) {
+      /* ── 이미 가입된 이메일 중복 체크 (users 테이블 직접 조회) ── */
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email.toLowerCase().trim())
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (existingUser) {
         return res.status(400).json({
           error: '이미 가입된 이메일이에요. 로그인하거나 비밀번호 찾기를 이용해주세요.',
           alreadyExists: true
