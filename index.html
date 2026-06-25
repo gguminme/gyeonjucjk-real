@@ -2516,8 +2516,8 @@ function showPage(id){
     window.history.pushState({page:id}, '', window.location.pathname);
   }
 
-  /* 새로고침 복원용 — 분석결과·마이페이지만 저장 (입력·로딩 등은 제외) */
-  const persistPages = ['pageResult','pageMypage'];
+  /* 새로고침 복원용 — [B안] pageResult 저장 제외, 마이페이지만 저장 */
+  const persistPages = ['pageMypage'];
   if(persistPages.includes(id)){
     try { localStorage.setItem('_lastPage', id); } catch(e){}
   } else {
@@ -4091,31 +4091,12 @@ window.addEventListener('load', async () => {
   await checkPasswordResetReturn();
 
   /* 새로고침 후 페이지 복원 */
+  /* [B안] 결과 화면(pageResult) 자동 복원 제거 — 메인 주소로 진입 시 항상 메인 표시.
+     단, _savedResult 캐시는 뒤로가기(popstate) 복원에 쓰이므로 여기서 지우지 않음 */
   const _lastPage = localStorage.getItem('_lastPage');
   if(_lastPage === 'pageResult'){
-    /* 비로그인 상태면 저장된 결과 신뢰하지 않음 — 다른 사용자의 캐시일 수 있음 */
-    if(!currentUser){
-      localStorage.removeItem('_savedResult');
-      localStorage.removeItem('_savedLogId');
-      localStorage.removeItem('_lastPage');
-    } else {
-      /* 저장된 분석 결과로 결과 페이지 복원 */
-      try {
-        const _saved = localStorage.getItem('_savedResult');
-        if(_saved){
-          const _r = JSON.parse(_saved);
-          const _savedLogId = localStorage.getItem('_savedLogId');
-          if (_savedLogId) currentLogId = _savedLogId;
-          render(_r);
-          /* 잠금 해제 여부 — render() 내부의 서버 검증 흐름에 위임
-             (currentLogId가 없는 새로고침 복원 시엔 isAnalysisUnlocked가 false 반환하므로
-              서버 isUnlocked API로만 판단) */
-          showPage('pageResult');
-        } else {
-          localStorage.removeItem('_lastPage');
-        }
-      } catch(e){ localStorage.removeItem('_lastPage'); }
-    }
+    /* 결과 복원 안 함 — 저장 흔적만 정리 */
+    localStorage.removeItem('_lastPage');
   } else if(_lastPage === 'pageMypage' && currentUser){
     /* 로그인 상태면 마이페이지 복원 */
     showPage('pageMypage');
